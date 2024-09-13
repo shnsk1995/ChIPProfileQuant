@@ -1,0 +1,11 @@
+Package: ChIPProfileQuant
+Type: Package
+Title: Quantification of ChIPseq profile plots
+Version: 0.1.0
+Author: Hari Naga Sai Kiran Suryadevara
+Maintainer: Hari Naga Sai Kiran Suryadevara (hari.suryadevara@pbrc.edu)
+Description: This package has the functions to quantify the average profiles of
+ChIPseq samples using the output data from plotProfile function of deeptools.
+License: GPL-v3.0
+Encoding: UTF-8
+LazyData: true
