@@ -7,4 +7,4 @@ Maintainer: Hari Naga Sai Kiran Suryadevara <hari.suryadevara@pbrc.edu>
 Description: This package has the functions to quantify the average profiles of ChIPseq samples using the output data from plotProfile function of deeptools.
 License: GPL-v3.0
 Encoding: UTF-8
-LazyData: false
+LazyData: true
