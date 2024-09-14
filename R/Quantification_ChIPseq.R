@@ -1,96 +1,5 @@
-if (!require("readr", quietly = TRUE)){
-  install.packages("readr")
-}
 
-if (!require("dplyr", quietly = TRUE)){
-  install.packages("dplyr")
-}
-
-if (!require("optparse", quietly = TRUE)){
-  install.packages("optparse")
-}
-
-
-library(readr)
-library(dplyr)
-library(optparse)
-
-# Define the command-line options
-option_list <- list(
-  make_option(c("-f", "--file"), type = "character",
-              help = "Path to the input file", metavar = "character"),
-  make_option(c("-c", "--control"), type = "character",
-              help = "Control sample name", metavar = "character"),
-  make_option(c("-o", "--outdir"), type = "character",
-              help = "Path to the output file", metavar = "character")
-)
-
-# Parse the options
-opt_parser <- OptionParser(option_list = option_list)
-opt <- parse_args(opt_parser)
-
-# Check if the file argument is provided
-if (is.null(opt$file)) {
-  stop("No file path provided. Use -f or --file to specify the file path.")
-}
-
-# Check if the control sample name argument is provided
-if (is.null(opt$control)) {
-  stop("No control sample name provided. Use -c or --control to specify the control sample name.")
-}
-
-# Access the file path
-file_path <- opt$file
-print(paste("File path passed:", file_path))
-
-# Read and process the file (if it exists)
-if (file.exists(file_path)) {
-  data <- read.delim(file_path,header = FALSE)
-  data <- as.data.frame(t(as.matrix(data)))
-  print("File read.")
-} else {
-  print("File does not exist.")
-}
-
-
-# Read the data from the file
-colnames(data) <- data[1,]
-data <- data[-(1:2),]
-data$bins <- as.integer(data$bins)
-
-binLabs <- data$`bin labels`
-binLabsComplete <- binLabs[complete.cases(binLabs)]
-
-downStreamRange <- binLabsComplete[1]
-if(any(grepl("K",downStreamRange))){
-  intBpsDownStream <- as.numeric(abs(as.numeric(sub("\\K.*","",downStreamRange)))) * 1000
-}else{
-  intBpsDownStream <- as.numeric(abs(as.numeric(sub("b.*","",downStreamRange))))
-}
-
-
-upStreamRange <- binLabsComplete[3]
-if(any(grepl("K",upStreamRange))){
-  intBpsUpStream <- as.numeric(abs(as.numeric(sub("\\K.*","",upStreamRange)))) * 1000
-}else{
-  intBpsUpStream <- as.numeric(abs(as.numeric(sub("b.*","",upStreamRange))))
-}
-
-
-totalBins <- nrow(data)/(length(binLabsComplete)/3)
-
-data <- data[-(totalBins+1:nrow(data)),]
-
-for (col in 3:ncol(data)){
-  data[,col] <- as.numeric(data[,col])
-}
-
-
-controlSample <- opt$control
-
-
-
-CalculatePeakRange <- function(data,control,downStream,upStream,bpSize){
+CalculatePeakRange <- function(data,control,downStream,upStream,bpSize,outdir){
 
   controlSample <- control
   noOfSamples <- ncol(data) - 2
@@ -304,15 +213,5 @@ CalculatePeakRange <- function(data,control,downStream,upStream,bpSize){
 
   return(resultTable)
 
-}
-
-
-resTab <- CalculatePeakRange(data,controlSample,intBpsDownStream,intBpsUpStream)
-
-
-if (is.null(opt$outdir)) {
-  write_tsv(resTab,file = "PeakResultTable.txt")
-}else{
-  write_tsv(resTab,file = paste0(opt$outdir,"PeakResultTable.txt"))
 }
 
