@@ -1,6 +1,6 @@
-\name{hello}
-\alias{hello}
-\title{Hello, World!}
+\name{QuantifyPeaks}
+\alias{QuantifyPeaks}
+\title{Function to quantify the average peak profiles of ChIPseq data}
 \usage{
 hello()
 }
