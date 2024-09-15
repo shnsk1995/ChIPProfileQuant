@@ -14,3 +14,10 @@ IMPORTS:
     dplyr,
     readr,
     optparse
+Collate:
+    'Main.R',
+    'InstallPackages.R',
+    'ProcessData.R',
+    'Variables.R',
+    'Quantification_ChIPseq.R',
+    'Test.R'
