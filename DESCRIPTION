@@ -8,3 +8,9 @@ Description: This package has the functions to quantify the average profiles of 
 License: GPL-v3.0
 Encoding: UTF-8
 LazyData: true
+URL: https://github.com/shnsk1995/ChIPProfileQuant
+DEPENDS: R (>= 4.2.3)
+IMPORTS:
+    dplyr,
+    readr,
+    optparse
