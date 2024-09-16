@@ -27,8 +27,6 @@ CalculateRateOfChange <- function(df,sampleName,windowSize){
 
 }
 
-
-
 CalculatePeakStart <- function(df,windowSize){
 
   PeakBin=df[df[,3]==max(df[,3]),]$bins
@@ -67,8 +65,6 @@ CalculatePeakStart <- function(df,windowSize){
 
 CalculatePeakEnd <- function(df,windowSize){
 
-  browser()
-
   df <- df%>%
     mutate(ProxyBins = 1:nrow(df))
 
@@ -104,63 +100,51 @@ CalculatePeakEnd <- function(df,windowSize){
 
   return(df[df$ProxyBins==peakEnd,]$bins)
 
-
-  # Ending_bin <- max
-  # last_window <- c()
-  # for(i in seq(Ending_bin,max(df$bins)-windowSize,by = windowSize)){
-  #
-  #   j=i
-  #   k=i+(windowSize-1)
-  #
-  #   # while(j<=k) {
-  #   #   if(j!=Ending_bin && j==i){
-  #   #     if(abs(df$RateOfChangePercentage[j])<abs(df$RateOfChangePercentage[j-1])){
-  #   #       peakEnd <- j-1
-  #   #       last_window <- c()
-  #   #     }
-  #   #     j <- j+1
-  #   #   }else{
-  #   #
-  #   #     if(abs(df$RateOfChangePercentage[j])>abs(df$RateOfChangePercentage[j+1])){
-  #   #       peakEnd <- j
-  #   #       last_window <- c(last_window,FALSE)
-  #   #     }
-  #   #
-  #   #   }
-  #   #   j <- j+ 1
-  #   # }
-  #
-  #   while(j<k) {
-  #     if(j!=PeakBin && j==i){
-  #       if(df$RateOfChangePercentage[df$bins==j]<df$RateOfChangePercentage[df$bins==j-1]){
-  #         peakEnd <- j-1
-  #         last_window <- c()
-  #       }
-  #       j <- j+1
-  #     }
-  #
-  #     if(!df$RateOfChangePercentage[df$bins==j]<df$RateOfChangePercentage[df$bins==j+1]){
-  #
-  #       peakEnd <- j
-  #       last_window <- c(last_window,FALSE)
-  #
-  #     }
-  #     j <- j+ 1
-  #   }
-  #
-  #
-  #   if(FALSE %in% last_window){
-  #     last_window <- c()
-  #     break
-  #   }else{
-  #     last_window <- c(last_window,TRUE)
-  #   }
-  # }
-  #
-  # return(peakEnd)
-
 }
 
+SaveDataPlots <- function(comData){
+
+  write.csv(comData,file = "data/QuantificationResults.csv")
+
+  uniqueSample <- unique(comData$Sample)
+  peakWidthList <- list()
+  peakRangeList <- list()
+  for(i in 1:length(uniqueSample)){
+
+    data <- comData[comData$Sample == uniqueSample[i],]
+
+    p <- ggplot2::ggplot(data,aes(x=WindowSize,y=PeakWidth))+
+      geom_line(size = 1.2)+
+      ggtitle(paste0("Sample:", uniqueSample[i]))+
+      labs(x="Window Size (Number of bins)",y="Peak Width (in bps)")
+
+    peakWidthList[[i]] <- p
+
+
+    data_long <- data %>%
+      pivot_longer(cols = c(PeakStartBin,PeakEndBin), names_to = "PeakRange", values_to = "Value")
+
+    p <- ggplot(data_long,aes(x=WindowSize,y=Value,color = PeakRange)) +
+      geom_line(size = 1.2) +
+      labs(x = "Window Size (Number of bins)", y = "Peak Bin")+
+      ggtitle(paste0("Sample:", uniqueSample[i]))
+
+
+    peakRangeList[[i]] <- p
+
+  }
+
+  png("data/PeakWidthChange.png", width = 800, height = 800)
+  gridExtra::grid.arrange(grobs = peakWidthList, nrow = 2, ncol = 2)
+
+  dev.off()  # Close the PNG device
+
+  png("data/PeakBinChange.png", width = 800, height = 800)
+  gridExtra::grid.arrange(grobs = peakRangeList, nrow = 2, ncol = 2)
+
+  dev.off()  # Close the PNG device
+
+}
 
 CalculatePeakRange <- function(data,control,downStream,upStream,bpSize,outdir){
 
@@ -207,8 +191,6 @@ CalculatePeakRange <- function(data,control,downStream,upStream,bpSize,outdir){
       peakRetreatDf <- peakRetreatDf[order(-peakRetreatDf$bins),]
       colnames(peakRetreatDf) <- c("bin labels","bins",sampleName)
 
-
-      browser()
       peakAdvanceDf <- CalculateRateOfChange(peakAdvanceDf,sampleName,windowSize)
       peakRetreatDf <- CalculateRateOfChange(peakRetreatDf,sampleName,windowSize)
 
@@ -253,12 +235,13 @@ CalculatePeakRange <- function(data,control,downStream,upStream,bpSize,outdir){
 
     resultTable<- resultTable[c("Sample","PeakBin","PeakStartBin","PeakEndBin","PeakWidth","PeakWidthChange","PeakScore","PeakScoreChange","PeakShift","WindowSize")]
 
-    write_tsv(resultTable,file = "C:/Users/SuryadHN/Downloads/Results.tsv",col_names = TRUE, append = TRUE)
-
     comResultTable <-  rbind(comResultTable,resultTable)
 
 
   }
+
+
+  SaveDataPlots(comResultTable)
 
   resultTable<-as.data.frame(matrix(ncol = 6,nrow = 0))
   colnames(resultTable)<-c("Sample","PeakBin","PeakStartBin","PeakEndBin","PeakWidth","PeakScore")

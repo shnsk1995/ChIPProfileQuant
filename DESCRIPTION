@@ -13,7 +13,9 @@ DEPENDS: R (>= 4.2.3)
 IMPORTS:
     dplyr,
     readr,
-    optparse
+    optparse,
+    ggplot2,
+    gridExtra
 Collate:
     'Main.R'
     'InstallPackages.R'

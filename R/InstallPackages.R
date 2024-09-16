@@ -14,6 +14,18 @@ InstallRequiredPackages <- function(){
     install.packages("optparse")
   }
 
+  if (!require("ggplot2", quietly = TRUE)){
+    install.packages("ggplot2")
+  }
+
+  if (!require("gridExtra", quietly = TRUE)){
+    install.packages("gridExtra")
+  }
+
+  if (!require("tidyr", quietly = TRUE)){
+    install.packages("tidyr")
+  }
+
 }
 
 
@@ -23,5 +35,8 @@ LoadRequiredPackages <- function(){
   library(readr)
   library(dplyr)
   library(optparse)
+  library(ggplot2)
+  library(gridExtra)
+  library(tidyr)
 
 }
