@@ -38,3 +38,4 @@ QuantifyPeaks <- function(dataPath,control){
   return(resTab)
 
 }
+

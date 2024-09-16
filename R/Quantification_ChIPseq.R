@@ -1,3 +1,166 @@
+CalculateRateOfChange <- function(df,sampleName,windowSize){
+
+  # Calculate the rate of change
+  df <- df %>%
+    mutate(
+      Difference = abs(!!sym(sampleName) - first(!!sym(sampleName))),
+      ChangePercentage = (Difference / first(!!sym(sampleName))) * 100,
+      PreviousBinPercentage = 0,
+      RateOfChangePercentage = 0
+    )
+
+  bin=1
+
+  for(i in 1:nrow(df)){
+    if(i==1 && bin==1){
+      df$PreviousBinPercentage[i] <- 0
+    }else if(i%%windowSize==1){
+      df$PreviousBinPercentage[i] <- df$ChangePercentage[i-windowSize]
+    }else{
+      df$PreviousBinPercentage[i] <- df$ChangePercentage[bin]
+    }
+    df$RateOfChangePercentage[i] <- df$ChangePercentage[i]-df$PreviousBinPercentage[i]
+    if(i %% windowSize == 0){bin <- bin + windowSize}
+  }
+
+  return(df)
+
+}
+
+
+
+CalculatePeakStart <- function(df,windowSize){
+
+  PeakBin=df[df[,3]==max(df[,3]),]$bins
+  Starting_bin <- 1
+  last_window <- c()
+  for(i in seq(Starting_bin,PeakBin-windowSize,by = windowSize)){
+    j=i
+    k=i+(windowSize-1)
+    while(j<k) {
+      if(j!=1 && j==i){
+        if(df$RateOfChangePercentage[j]<df$RateOfChangePercentage[j-1]){
+          peakStart <- j
+          last_window <- c()
+        }
+        j <- j+1
+      }
+
+      if(!df$RateOfChangePercentage[j]<df$RateOfChangePercentage[j+1]){
+
+        peakStart <- j+1
+        last_window <- c(last_window,FALSE)
+
+      }
+      j <- j+ 1
+    }
+    if(FALSE %in% last_window){
+      last_window <- c()
+    }else{
+      last_window <- c(last_window,TRUE)
+    }
+  }
+
+  return(peakStart)
+
+}
+
+CalculatePeakEnd <- function(df,windowSize){
+
+  browser()
+
+  df <- df%>%
+    mutate(ProxyBins = 1:nrow(df))
+
+  PeakBin=df[df[,3]==max(df[,3]),]$ProxyBins
+  Starting_bin <- 1
+  last_window <- c()
+  for(i in seq(Starting_bin,PeakBin-windowSize,by = windowSize)){
+    j=i
+    k=i+(windowSize-1)
+    while(j<k) {
+      if(j!=1 && j==i){
+        if(df$RateOfChangePercentage[j]<df$RateOfChangePercentage[j-1]){
+          peakEnd <- j
+          last_window <- c()
+        }
+        j <- j+1
+      }
+
+      if(!df$RateOfChangePercentage[j]<df$RateOfChangePercentage[j+1]){
+
+        peakEnd <- j+1
+        last_window <- c(last_window,FALSE)
+
+      }
+      j <- j+ 1
+    }
+    if(FALSE %in% last_window){
+      last_window <- c()
+    }else{
+      last_window <- c(last_window,TRUE)
+    }
+  }
+
+  return(df[df$ProxyBins==peakEnd,]$bins)
+
+
+  # Ending_bin <- max
+  # last_window <- c()
+  # for(i in seq(Ending_bin,max(df$bins)-windowSize,by = windowSize)){
+  #
+  #   j=i
+  #   k=i+(windowSize-1)
+  #
+  #   # while(j<=k) {
+  #   #   if(j!=Ending_bin && j==i){
+  #   #     if(abs(df$RateOfChangePercentage[j])<abs(df$RateOfChangePercentage[j-1])){
+  #   #       peakEnd <- j-1
+  #   #       last_window <- c()
+  #   #     }
+  #   #     j <- j+1
+  #   #   }else{
+  #   #
+  #   #     if(abs(df$RateOfChangePercentage[j])>abs(df$RateOfChangePercentage[j+1])){
+  #   #       peakEnd <- j
+  #   #       last_window <- c(last_window,FALSE)
+  #   #     }
+  #   #
+  #   #   }
+  #   #   j <- j+ 1
+  #   # }
+  #
+  #   while(j<k) {
+  #     if(j!=PeakBin && j==i){
+  #       if(df$RateOfChangePercentage[df$bins==j]<df$RateOfChangePercentage[df$bins==j-1]){
+  #         peakEnd <- j-1
+  #         last_window <- c()
+  #       }
+  #       j <- j+1
+  #     }
+  #
+  #     if(!df$RateOfChangePercentage[df$bins==j]<df$RateOfChangePercentage[df$bins==j+1]){
+  #
+  #       peakEnd <- j
+  #       last_window <- c(last_window,FALSE)
+  #
+  #     }
+  #     j <- j+ 1
+  #   }
+  #
+  #
+  #   if(FALSE %in% last_window){
+  #     last_window <- c()
+  #     break
+  #   }else{
+  #     last_window <- c(last_window,TRUE)
+  #   }
+  # }
+  #
+  # return(peakEnd)
+
+}
+
 
 CalculatePeakRange <- function(data,control,downStream,upStream,bpSize,outdir){
 
@@ -34,103 +197,30 @@ CalculatePeakRange <- function(data,control,downStream,upStream,bpSize,outdir){
       df <- data.frame(`bin labels`=data$`bin labels`,bins=data$bins,data_column=data[,2+i])
       sampleName <- as.character(colnames(data)[2+i])
       colnames(df) <- c("bin labels","bins",sampleName)
-      # Calculate the rate of change
-      df <- df %>%
-        arrange(bins) %>%  # Ensure data is sorted by time
-        mutate(
-          Difference = !!sym(sampleName) - first(!!sym(sampleName)),
-          ChangePercentage = (Difference / first(!!sym(sampleName))) * 100,
-          PreviousBinPercentage = 0,
-          RateOfChangePercentage = 0
-        )
-
-      bin=1
-
-      for(i in 1:nrow(df)){
-        if(i==1 && bin==1){
-          df$PreviousBinPercentage[i] <- 0
-        }else if(i%%windowSize==1){
-          df$PreviousBinPercentage[i] <- df$ChangePercentage[i-windowSize]
-        }else{
-          df$PreviousBinPercentage[i] <- df$ChangePercentage[bin]
-        }
-        df$RateOfChangePercentage[i] <- df$ChangePercentage[i]-df$PreviousBinPercentage[i]
-        if(i %% windowSize == 0){bin <- bin + windowSize}
-      }
 
 
-      PeakBin=df[df[,3]==max(df[,3]),]$bins
-      Starting_bin <- 1
-      last_window <- c()
-      for(i in seq(Starting_bin,PeakBin-(PeakBin%%windowSize),by = windowSize)){
-        j=i
-        k=i+(windowSize-1)
-        while(j<k) {
-          if(j!=1 && j==i){
-            if(df$RateOfChangePercentage[j]<df$RateOfChangePercentage[j-1]){
-              last_window <- c()
-            }
-            j <- j+1
-          }
 
-          if(j==1){
-            j <- j+1
-          }
+      peakAdvanceDf <- df[1:(df[df[[sampleName]]==max(df[[sampleName]]),]$bins),]
+      colnames(peakAdvanceDf) <- c("bin labels","bins",sampleName)
 
-          if(!df$RateOfChangePercentage[j]<df$RateOfChangePercentage[j+1]){
-            Starting_bin <- i+windowSize
-            last_window <- c(last_window,FALSE)
-            break
-          }
-          j <- j+ 1
-        }
-        if(FALSE %in% last_window){
-          last_window <- c()
-        }else{
-          last_window <- c(last_window,TRUE)
-        }
-      }
+      peakRetreatDf <- df[(df[df[[sampleName]]==max(df[[sampleName]]),]$bins):nrow(df),]
+      peakRetreatDf <- peakRetreatDf[order(-peakRetreatDf$bins),]
+      colnames(peakRetreatDf) <- c("bin labels","bins",sampleName)
 
 
-      Ending_bin <- PeakBin+((windowSize+1)-(PeakBin%%windowSize))
-      last_window <- c()
-      for(i in seq(Ending_bin,nrow(df)-1,by = windowSize)){
-        j=i
-        k=i+(windowSize-1)
+      browser()
+      peakAdvanceDf <- CalculateRateOfChange(peakAdvanceDf,sampleName,windowSize)
+      peakRetreatDf <- CalculateRateOfChange(peakRetreatDf,sampleName,windowSize)
 
-        while(j<k) {
-          if(j!=(PeakBin+((windowSize+1)-(PeakBin%%windowSize))) && j==i){
-            if(df$RateOfChangePercentage[j]>df$RateOfChangePercentage[j-1]){
-              last_window <- c()
-            }
-            j <- j+1
-          }
-
-          if(j==(PeakBin+((windowSize+1)-(PeakBin%%windowSize)))){
-            j <- j+1
-          }
-
-          if(!df$RateOfChangePercentage[j]>df$RateOfChangePercentage[j+1]){
-            Ending_bin <- i
-            last_window <- c(last_window,FALSE)
-            break
-          }
-          j <- j+ 1
-        }
-        if(FALSE %in% last_window){
-          last_window <- c()
-          break
-        }else{
-          last_window <- c(last_window,TRUE)
-        }
-      }
+      peakStart <- CalculatePeakStart(peakAdvanceDf,windowSize)
+      peakEnd <- CalculatePeakEnd(peakRetreatDf,windowSize)
 
 
       sampleRow <- data.frame(Sample=sampleName,
                               PeakBin=df[df[,3]==max(df[,3]),]$bins,
-                              PeakStartBin=Starting_bin,
-                              PeakEndBin=Ending_bin,
-                              PeakWidth=(Ending_bin-Starting_bin)*bpsPerBin,
+                              PeakStartBin=peakStart,
+                              PeakEndBin=peakEnd,
+                              PeakWidth=(peakEnd-peakStart)*bpsPerBin,
                               PeakScore=max(df[,3])
       )
 
@@ -163,6 +253,7 @@ CalculatePeakRange <- function(data,control,downStream,upStream,bpSize,outdir){
 
     resultTable<- resultTable[c("Sample","PeakBin","PeakStartBin","PeakEndBin","PeakWidth","PeakWidthChange","PeakScore","PeakScoreChange","PeakShift","WindowSize")]
 
+    write_tsv(resultTable,file = "C:/Users/SuryadHN/Downloads/Results.tsv",col_names = TRUE, append = TRUE)
 
     comResultTable <-  rbind(comResultTable,resultTable)
 
